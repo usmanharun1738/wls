@@ -37,7 +37,7 @@ return [
 
     'africastalking' => [
         'username' => env('AFRICASTALKING_USERNAME', 'sandbox'),
-        'api_key' => env('AFRICASTALKING_API_KEY'),
+        'api_key' => env('AFRICASTALKING_KEY'),
         'from' => env('AFRICASTALKING_FROM', 'WLS'),
         'currency' => env('AFRICASTALKING_CURRENCY', 'NGN'),
     ],

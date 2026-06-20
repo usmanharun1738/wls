@@ -48,6 +48,10 @@ class UssdService
      */
     protected function processStep(UssdSession $session, string $input): string
     {
+        // AT sends cumulative text like "1*1*Near Kaduna River Bridge"
+        // We only need the last input after the final "*"
+        $input = $this->extractLastInput($input);
+
         // Check for session reset (option 0 from welcome)
         if ($input === '0' && $session->current_step > 0) {
             return $this->resetSession($session);
@@ -148,8 +152,14 @@ class UssdService
             'status' => 'pending',
         ]);
 
-        // Alert rangers via SMS
-        $this->smsService->alertRangers($report);
+        // Alert rangers via SMS (fire-and-forget — don't break USSD if SMS fails)
+        try {
+            $this->smsService->alertRangers($report);
+        } catch (\Throwable $e) {
+            logger()->error('SMS alert failed for report #'.$report->reference_id, [
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         // Clean up session
         $session->delete();
@@ -208,6 +218,21 @@ class UssdService
         $session->update(['current_step' => 0, 'data' => null]);
 
         return $this->showWelcome($session);
+    }
+
+    /**
+     * Extract the last user input from AT's cumulative text format.
+     * AT sends "1*1*Near Kaduna River" — we only want "Near Kaduna River".
+     */
+    protected function extractLastInput(string $text): string
+    {
+        if (blank($text)) {
+            return '';
+        }
+
+        $parts = explode('*', $text);
+
+        return (string) end($parts);
     }
 
     /**
