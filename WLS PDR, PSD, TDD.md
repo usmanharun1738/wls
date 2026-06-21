@@ -1,6 +1,6 @@
 
 ## 1\. Product Requirements Document (PRD)
-
+usman harun
 ## 1.1 Executive Summary
 
 WLS (wild life support) is a mobile-first platform that enables rural communities to report wildlife crimes (poaching, snares, injured animals) via USSD, automatically alerts nearby rangers via SMS, and rewards reporters with mobile airtime. The system works entirely offline (USSD/SMS) and requires no smartphone or internet connection.
