@@ -33,23 +33,25 @@ test('send returns success response', function () {
     expect($response['status'])->toBe('success');
 });
 
-test('alertRangers sends to all active rangers', function () {
-    Ranger::factory()->count(3)->create(['is_active' => true]);
+test('alertRangers sends to location-matched rangers', function () {
+    Ranger::factory()->create(['is_active' => true, 'base_location' => 'Dagida Forest Reserve']);
+    Ranger::factory()->create(['is_active' => true, 'base_location' => 'Dagida Patrol Station']);
+    Ranger::factory()->create(['is_active' => true, 'base_location' => 'Kamuku HQ']);
     Ranger::factory()->create(['is_active' => false]); // inactive — should be skipped
 
     $report = Report::factory()->create([
         'incident_type' => 'snare',
-        'location' => 'Dagida Forest Reserve',
+        'location' => 'Near Dagida Forest Reserve',
     ]);
 
-    // Should be called 3 times (only active rangers)
+    // Should alert 2 rangers (both with "Dagida" in their base_location)
     $this->smsMock->shouldReceive('send')
-        ->times(3)
-        ->andReturn(['status' => 'success', 'data' => []]);
+        ->times(2)
+        ->andReturn(['status' => 'success', 'data' => ['SMSMessageData' => ['Recipients' => [['messageId' => 'test-123']]]]]);
 
     $sent = $this->smsService->alertRangers($report);
 
-    expect($sent)->toBe(3);
+    expect($sent)->toBe(2);
 });
 
 test('alertRangers handles no active rangers gracefully', function () {
@@ -69,13 +71,12 @@ test('formatAlertMessage includes incident type and location', function () {
         'reference_id' => 'WLS-20260620-ABCDE',
     ]);
 
-    // Use reflection to test the protected method
     $reflection = new ReflectionMethod(SmsService::class, 'formatAlertMessage');
-
-    $message = $reflection->invoke($this->smsService, $report);
+    $message = $reflection->invoke($this->smsService, $report, 5);
 
     expect($message)->toContain('[WLS ALERT]')
         ->and($message)->toContain('POACHING')
         ->and($message)->toContain('Kamuku National Park')
-        ->and($message)->toContain('WLS-20260620-ABCDE');
+        ->and($message)->toContain('WLS-20260620-ABCDE')
+        ->and($message)->toContain('5 rangers alerted');
 });
