@@ -24,7 +24,9 @@ class AdminDashboard extends Component
 
     public string $search = '';
 
-    public int $selectedReportId = 0;
+    public ?int $rejectingReportId = null;
+
+    public string $rejectionReason = '';
 
     public function updatingFilterStatus(): void
     {
@@ -75,11 +77,9 @@ class AdminDashboard extends Component
         ]);
 
         Flux::toast(variant: 'success', text: "Report #{$report->reference_id} verified successfully.");
-
-        $this->selectedReportId = 0;
     }
 
-    public function reject(Report $report): void
+    public function startReject(Report $report): void
     {
         if (! $report->isPending()) {
             Flux::toast(variant: 'error', text: 'Report is not pending.');
@@ -87,14 +87,37 @@ class AdminDashboard extends Component
             return;
         }
 
+        $this->rejectingReportId = $report->id;
+        $this->rejectionReason = '';
+    }
+
+    public function confirmReject(): void
+    {
+        $report = Report::find($this->rejectingReportId);
+
+        if (! $report || ! $report->isPending()) {
+            Flux::toast(variant: 'error', text: 'Report is not pending.');
+            $this->rejectingReportId = null;
+
+            return;
+        }
+
         $report->update([
             'status' => 'rejected',
+            'rejection_reason' => $this->rejectionReason ?: null,
             'verified_by' => auth()->id(),
         ]);
 
         Flux::toast(variant: 'success', text: "Report #{$report->reference_id} rejected.");
 
-        $this->selectedReportId = 0;
+        $this->rejectingReportId = null;
+        $this->rejectionReason = '';
+    }
+
+    public function cancelReject(): void
+    {
+        $this->rejectingReportId = null;
+        $this->rejectionReason = '';
     }
 
     public function getStats(): array

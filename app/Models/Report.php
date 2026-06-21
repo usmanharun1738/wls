@@ -20,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property ?float $longitude
  * @property ?string $description
  * @property string $status
+ * @property ?string $rejection_reason
  * @property ?int $verified_by
  * @property float $reward_amount
  * @property bool $reward_sent
@@ -35,6 +36,7 @@ use Illuminate\Support\Carbon;
     'longitude',
     'description',
     'status',
+    'rejection_reason',
     'verified_by',
     'reward_amount',
     'reward_sent',

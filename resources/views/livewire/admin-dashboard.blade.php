@@ -127,6 +127,11 @@
                                 >
                                     {{ ucfirst($report->status) }}
                                 </flux:badge>
+                                @if ($report->isRejected() && $report->rejection_reason)
+                                    <flux:tooltip content="{{ $report->rejection_reason }}">
+                                        <flux:icon name="information-circle" variant="micro" class="ml-1 text-zinc-400 cursor-help" />
+                                    </flux:tooltip>
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
                                 {{ $report->created_at->format('M j, Y H:i') }}
@@ -142,7 +147,7 @@
                                             Verify
                                         </flux:button>
                                         <flux:button
-                                            wire:click="reject({{ $report->id }})"
+                                            wire:click="startReject({{ $report->id }})"
                                             variant="danger"
                                             size="xs"
                                         >
@@ -183,4 +188,35 @@
             </div>
         @endif
     </flux:card>
+
+    {{-- Reject Modal --}}
+    <flux:modal wire:model.self="rejectingReportId" class="min-w-[24rem]">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">Reject Report</flux:heading>
+                <flux:text class="mt-2">
+                    Please provide a reason for rejecting this report. This helps maintain transparency.
+                </flux:text>
+            </div>
+
+            <flux:field>
+                <flux:label>Reason (optional)</flux:label>
+                <flux:textarea
+                    wire:model="rejectionReason"
+                    rows="3"
+                    placeholder="e.g., Duplicate report, insufficient details, spam..."
+                />
+            </flux:field>
+
+            <div class="flex gap-2">
+                <flux:spacer />
+                <flux:button wire:click="cancelReject" variant="ghost">
+                    Cancel
+                </flux:button>
+                <flux:button wire:click="confirmReject" variant="danger">
+                    Confirm Rejection
+                </flux:button>
+            </div>
+        </div>
+    </flux:modal>
 </div>
