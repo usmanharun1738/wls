@@ -5,6 +5,68 @@
 
 WLS (wild life support) is a mobile-first platform that enables rural communities to report wildlife crimes (poaching, snares, injured animals) via USSD, automatically alerts nearby rangers via SMS, and rewards reporters with mobile airtime. The system works entirely offline (USSD/SMS) and requires no smartphone or internet connection.
 
+---
+
+## 0\. Implementation Status (Hackathon — June 27, 2026)
+
+> **Last updated**: 2026-06-20 | **Test suite**: 59 tests, 162 assertions, all passing | **Service code**: `*384*44275#`
+
+### 0.1 Achieved Objectives
+
+| # | Objective | Status | Details |
+|---|---|---|---|
+| 1 | **USSD Reporting Menu** | ✅ Live | 5-step flow: Welcome → Select type (Poaching/Snare/Injured Animal) → Enter location → Confirmation with ref ID. Tested e2e via ngrok + AT sandbox. |
+| 2 | **SMS Ranger Alerts** | ✅ Integrated | Reports trigger SMS to all 10 active rangers via `SmsService` + AT SMS API. Wrapped in try-catch so USSD never breaks. *(Sender ID pending AT registration)* |
+| 3 | **Admin Dashboard** | ✅ Built | Livewire + Flux UI dashboard at `/dashboard` with 5 stat cards, filterable reports table (status/type/date/search), inline verify/reject buttons, pagination. |
+| 4 | **Report Lifecycle** | ✅ Operational | Pending → Verified (by admin) or Rejected. Status badges color-coded. DB columns ready for airtime. |
+| 5 | **Reporting History (USSD)** | ✅ Built | Option 2 from welcome menu shows last 5 reports with status. |
+| 6 | **Reward Balance (USSD)** | ✅ Built | Option 3 from welcome menu shows verified count × ₦100 = total earned. |
+| 7 | **AT SDK Integration** | ✅ Configured | `africastalking/africastalking` v3.0 with singleton service provider. USSD + SMS + Airtime APIs wired. |
+| 8 | **Test Suite** | ✅ 59 passing | 4 test files: `UssdServiceTest` (7 unit), `SmsServiceTest` (4 unit), `UssdCallbackTest` (5 feature), `ReportVerificationTest` (9 feature). |
+| 9 | **ngrok + Callback URL** | ✅ Live | Callback registered at `https://d296-102-91-105-29.ngrok-free.app/api/ussd/callback` |
+| 10 | **Database Seeders** | ✅ Seeded | 10 active rangers with real Kaduna-area locations, 1 admin user (`admin@wls.test`). |
+
+### 0.2 Not Yet Implemented
+
+| # | Objective | Priority | Blockers / Notes |
+|---|---|---|---|
+| 1 | **Airtime Rewards** | P1 — Hackathon | `rewards` table migration + model + `AirtimeService` + wire verify to trigger airtime. SDK already installed. ~2 hours. |
+| 2 | **SMS Sender ID** | P1 — Hackathon | AT requires sender ID registration in dashboard. Currently gets `InvalidSenderId`. Fix: register "WLS" or use default. |
+| 3 | **Docker Deployment** | P1 — Hackathon | `Dockerfile` + `docker-compose.yml` + nginx config. PRD has templates ready. ~1 hour. |
+| 4 | **Dashboard — Reason on Reject** | P2 — Nice-to-have | Add optional reason field when admin rejects a report. |
+| 5 | **Dashboard — Map View** | P2 — Nice-to-have | Plot reports on Leaflet/Mapbox if GPS coords present. Visual impact for demo. |
+| 6 | **GPS Coordinates Parsing** | P2 — Nice-to-have | Parse "lat,lng" format from USSD location input. Columns exist in DB. |
+| 7 | **Rate Limiting** | P3 — Post-hackathon | Apply on USSD callback + admin API endpoints. |
+| 8 | **Ranger Dashboard** | P3 — Post-hackathon | Separate login for rangers to view alerts assigned to them. |
+| 9 | **Eco-Tourism Payments** | P4 — Future | Excluded from hackathon scope per decision. |
+
+### 0.3 Hackathon Demo Script
+
+```
+1. Admin logs in at /dashboard → sees stats cards + empty table
+2. Simulate USSD: Dial *384*44275# → "Welcome to Wildlife Alert"
+3. Press 1 → "1. Poaching  2. Snare  3. Injured Animal"
+4. Press 1 → "Enter location"
+5. Type "Near Kaduna River" → "Thank you! Report #WLS-... submitted."
+6. Refresh dashboard → new report appears as "Pending"
+7. Click "Verify" → status changes to "Verified", toast notification
+8. (Post-airtime) Reporter dials option 3 → "Total earned: NGN 100"
+```
+
+### 0.4 Key Architecture Decisions
+
+| Decision | Rationale |
+|---|---|
+| **USSD session state in DB** (`ussd_sessions`) | Survives server restarts; AT sessionIds are persistent across a user session |
+| **SMS fire-and-forget** (try-catch in USSD) | USSD must respond <10s; SMS failures must not break reporting |
+| **Livewire SFC for dashboard** | Follows project convention (settings pages use same pattern); Flux UI free edition |
+| **SQLite for dev/testing** | Already in `.env`; zero-config; MySQL for production |
+| **AT cumulative text parsing** (`extractLastInput`) | AT sends `1*2*Near River` — we extract only last segment after `*` |
+| **No `rewards` table yet** | `reward_amount` + `reward_sent` columns on `reports` ready for airtime integration |
+
+---
+
+
 ## 1.2 Problem Statement
 
 - Wildlife authorities lack real‑time intelligence from remote areas.
@@ -144,16 +206,18 @@ WLS (wild life support) is a mobile-first platform that enables rural communitie
 
 ## 2.2 Technology Stack
 
-| Layer             | Technology                      | Version |
-| ----------------- | ------------------------------- | ------- |
-| Backend Framework | Laravel                         | 13      |
-| Language          | PHP                             | 8.3+    |
-| Database          | MySQL                           | 8.0     |
-| Cache (optional)  | Redis                           | 7.0     |
-| Queue (optional)  | Laravel Queue                   | \-      |
-| AT SDK            | `africastalking/africastalking` | latest  |
-| Container         | Docker                          | 24+     |
-| Web Server        | Nginx (inside container)        | \-      |
+| Layer             | Technology                      | Version | Notes |
+| ----------------- | ------------------------------- | ------- | ----- |
+| Backend Framework | Laravel                         | 13      | |
+| Language          | PHP                             | 8.5     | |
+| Database (dev)    | SQLite                          | —       | Zero-config local dev |
+| Database (prod)   | MySQL                           | 8.0     | |
+| Frontend          | Livewire + Flux UI + Tailwind   | v4 / v2 / v4 | Admin dashboard |
+| Auth              | Laravel Fortify                 | v1      | Login, 2FA, passkeys |
+| Testing           | Pest                            | v4      | 59 tests passing |
+| AT SDK            | `africastalking/africastalking` | v3.0.2  | USSD + SMS + Airtime |
+| Tunnel (dev)      | ngrok                           | —       | Expose localhost to AT sandbox |
+| Container         | Docker (planned)                | 24+     | For hackathon deployment |
 
 ## 2.3 Database Schema
 
@@ -232,17 +296,19 @@ CREATE TABLE ussd_sessions (
 );
 ```
 
-## 2.4 API Endpoints (Internal)
+## 2.4 API Endpoints
 
-| Endpoint | Method | Purpose |
-| --- | --- | --- |
-| `/api/ussd/callback` | POST | Receives USSD requests from AT |
-| `/api/sms/callback` | POST | Receives incoming SMS (optional) |
-| `/api/reports` | GET | List all reports (dashboard) |
-| `/api/reports/{id}/verify` | POST | Verify a report |
-| `/api/reports/{id}/reject` | POST | Reject a report |
-| `/api/rangers` | GET | List all rangers |
-| `/api/dashboard/stats` | GET | Dashboard statistics |
+| Endpoint | Method | Auth | Purpose |
+| --- | --- | --- | --- |
+| `/api/ussd/callback` | POST | None | Receives USSD requests from AT |
+| `/api/sms/callback` | POST | None | Receives SMS delivery reports from AT |
+| `/api/admin/reports` | GET | Auth | List all reports (paginated, filterable) |
+| `/api/admin/reports/{report}/verify` | POST | Auth | Verify a report |
+| `/api/admin/reports/{report}/reject` | POST | Auth | Reject a report |
+| `/api/admin/rangers` | GET | Auth | List all rangers |
+| `/api/admin/dashboard/stats` | GET | Auth | Dashboard statistics |
+| `/dashboard` | GET | Auth | Livewire admin dashboard (full page) |
+| `/login`, `/register` | GET/POST | None | Fortify auth pages |
 
 ## 2.5 USSD Flow Diagram
 

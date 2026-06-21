@@ -5,6 +5,8 @@ namespace App\Models {
     /**
      * App\Models\Ranger
      *
+     * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Report> $reports
+     * @property-read int|null $reports_count
      * @method static \Illuminate\Database\Eloquent\Builder<Ranger>|Ranger whereId($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Ranger>|Ranger whereName($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Ranger>|Ranger wherePhoneNumber($value)
@@ -338,6 +340,8 @@ namespace App\Models {
      * App\Models\Report
      *
      * @property-read \App\Models\User $verifier
+     * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Ranger> $rangers
+     * @property-read int|null $rangers_count
      * @method static \Illuminate\Database\Eloquent\Builder<Report>|Report whereId($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Report>|Report whereReferenceId($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Report>|Report wherePhoneNumber($value)

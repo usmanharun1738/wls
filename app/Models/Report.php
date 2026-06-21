@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -62,6 +63,15 @@ class Report extends Model
     public function verifier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    /**
+     * Rangers who were alerted about this report.
+     */
+    public function rangers(): BelongsToMany
+    {
+        return $this->belongsToMany(Ranger::class, 'report_ranger')
+            ->withPivot(['alerted_at', 'sms_status', 'sms_message_id']);
     }
 
     public function isPending(): bool

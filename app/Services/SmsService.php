@@ -46,7 +46,17 @@ class SmsService
         foreach ($rangers as $ranger) {
             $response = $this->send($ranger->phone_number, $message);
 
-            if (($response['status'] ?? '') === 'success') {
+            $smsStatus = ($response['status'] ?? '') === 'success' ? 'sent' : 'failed';
+            $messageId = $response['data']['SMSMessageData']['Recipients'][0]['messageId'] ?? null;
+
+            // Record the alert in the pivot table
+            $report->rangers()->attach($ranger->id, [
+                'alerted_at' => now(),
+                'sms_status' => $smsStatus,
+                'sms_message_id' => $messageId,
+            ]);
+
+            if ($smsStatus === 'sent') {
                 $sent++;
             }
         }

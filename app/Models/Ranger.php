@@ -6,6 +6,7 @@ use Database\Factories\RangerFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -33,6 +34,15 @@ class Ranger extends Model
 {
     /** @use HasFactory<RangerFactory> */
     use HasFactory;
+
+    /**
+     * Reports this ranger was alerted about.
+     */
+    public function reports(): BelongsToMany
+    {
+        return $this->belongsToMany(Report::class, 'report_ranger')
+            ->withPivot(['alerted_at', 'sms_status', 'sms_message_id']);
+    }
 
     protected function casts(): array
     {
