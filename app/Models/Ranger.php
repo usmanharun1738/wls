@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property ?float $latitude
  * @property ?float $longitude
  * @property bool $is_active
+ * @property string $pin
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
@@ -29,6 +30,7 @@ use Illuminate\Support\Carbon;
     'latitude',
     'longitude',
     'is_active',
+    'pin',
 ])]
 class Ranger extends Model
 {
