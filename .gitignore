@@ -1,0 +1,71 @@
+# --- Environment & Secrets ---
+.env
+.env.backup
+.env.local
+.env.staging
+.env.production
+*.env
+
+# --- Composer ---
+/vendor/
+composer.lock
+
+# --- Node / NPM ---
+/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Laravel ---
+/public/build/
+/public/hot/
+/public/storage/
+/storage/*.key
+/storage/app/private/
+/storage/framework/cache/data/
+/storage/framework/sessions/
+/storage/framework/testing/
+/storage/framework/views/*.php
+/storage/logs/
+/bootstrap/cache/
+
+# --- Database ---
+*.sqlite
+*.sqlite3
+/database/database.sqlite
+/database/dumps/
+
+# --- IDE ---
+.idea/
+.vscode/
+*.sublime-*
+*.code-workspace
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# --- Debug ---
+/xdebug/
+.phpunit.result.cache
+.php-cs-fixer.cache
+.pest-cache/
+node_modules/.vite/
+
+# --- Docker ---
+/docker/mysql/
+/docker-compose.override.yml
+
+# --- Packages ---
+/package-lock.json
+/yarn.lock
+
+# --- Ngrok ---
+ngrok.yml
+
+# --- WLS Specific ---
+/junie/
+/.agents/
