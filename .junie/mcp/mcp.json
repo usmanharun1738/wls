@@ -1,0 +1,12 @@
+{
+    "mcpServers": {
+        "laravel-boost": {
+            "type":"stdio",
+            "command": "/usr/bin/php8.5",
+            "args": [
+                "/home/jay/Desktop/dev/wls/artisan",
+                "boost:mcp"
+            ]
+        }
+    }
+}
