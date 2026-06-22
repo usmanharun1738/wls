@@ -32,6 +32,9 @@
         </flux:card>
     </div>
 
+    {{-- Nigeria Ranger Coverage Map --}}
+    @include('livewire.nigeria-map')
+
     {{-- Incident Breakdown + Quick Date Presets + Export --}}
     <div class="flex flex-wrap items-center justify-between gap-4">
         <div class="flex flex-wrap items-center gap-2 text-xs">

@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\Ranger;
 use App\Models\Report;
 use Flux\Flux;
 use Illuminate\View\View;
@@ -247,6 +248,55 @@ class AdminDashboard extends Component
         return view('livewire.admin-dashboard', [
             'reports' => $query->paginate(15),
             'stats' => $this->getStats(),
+            'rangerCount' => Ranger::where('is_active', true)->count(),
+            'rangerBases' => $this->getRangerBaseSummary(),
+            'rangerPositions' => $this->getRangerSvgPositions(),
         ]);
+    }
+
+    protected function getRangerBaseSummary(): array
+    {
+        return Ranger::selectRaw('base_location, count(*) as count')
+            ->where('is_active', true)
+            ->whereNotNull('base_location')
+            ->groupBy('base_location')
+            ->orderByDesc('count')
+            ->get()
+            ->map(fn ($r) => ['name' => $r->base_location, 'count' => $r->count])
+            ->toArray();
+    }
+
+    protected function getRangerSvgPositions(): array
+    {
+        // Approximate SVG positions for ranger bases within Kaduna state area
+        // Kaduna center is roughly (433, 299) in SVG coordinates
+        $baseMap = [
+            'Kamuku National Park HQ' => ['x' => 350, 'y' => 260, 'label' => 'Kamuku'],
+            'Birnin Gwari Forest Station' => ['x' => 340, 'y' => 280, 'label' => 'Birnin Gwari'],
+            'Kuyambana Game Reserve Outpost' => ['x' => 310, 'y' => 290, 'label' => 'Kuyambana'],
+            'River Kaduna Patrol Base' => ['x' => 450, 'y' => 300, 'label' => 'R. Kaduna'],
+            'Dagida Forest Reserve' => ['x' => 350, 'y' => 310, 'label' => 'Dagida'],
+            'Kaduna Central Command' => ['x' => 433, 'y' => 290, 'label' => 'HQ'],
+            'Kainji Lake National Park' => ['x' => 280, 'y' => 320, 'label' => 'Kainji'],
+            'Yankari Game Reserve South' => ['x' => 500, 'y' => 270, 'label' => 'Yankari'],
+            'Old Oyo National Park - North Gate' => ['x' => 250, 'y' => 330, 'label' => 'Old Oyo'],
+            'Zugurma Game Reserve HQ' => ['x' => 280, 'y' => 340, 'label' => 'Zugurma'],
+        ];
+
+        return Ranger::where('is_active', true)
+            ->whereNotNull('base_location')
+            ->get()
+            ->map(function ($r) use ($baseMap) {
+                $pos = $baseMap[$r->base_location] ?? ['x' => 433, 'y' => 299, 'label' => null];
+
+                return [
+                    'x' => $pos['x'] + rand(-15, 15),
+                    'y' => $pos['y'] + rand(-10, 10),
+                    'name' => $r->name,
+                    'location' => $r->base_location,
+                    'label' => $pos['label'],
+                ];
+            })
+            ->toArray();
     }
 }
