@@ -1,3 +1,4 @@
+<div>
 <div class="flex h-full w-full flex-1 flex-col gap-6 rounded-xl">
     {{-- Stats Cards --}}
     <div class="grid auto-rows-min gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -49,6 +50,13 @@
                     <option value="inactive">Inactive</option>
                 </flux:select>
             </div>
+
+            <div class="flex items-end gap-2">
+                <flux:button wire:click="openCreate" variant="primary" icon="plus">
+                    Add Ranger
+                </flux:button>
+            </div>
+            </div>
         </div>
     </flux:card>
 
@@ -72,7 +80,9 @@
                     @forelse ($rangers as $ranger)
                         <tr wire:key="ranger-{{ $ranger->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
                             <td class="px-4 py-3 font-medium">
-                                {{ $ranger->name }}
+                                <button wire:click="openEdit({{ $ranger->id }})" class="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer text-left">
+                                    {{ $ranger->name }}
+                                </button>
                             </td>
                             <td class="px-4 py-3 font-mono text-xs">
                                 <a href="tel:{{ $ranger->phone_number }}" class="text-blue-600 dark:text-blue-400 hover:underline">
@@ -110,13 +120,21 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-right">
-                                <flux:button
-                                    wire:click="toggleActive({{ $ranger->id }})"
-                                    :variant="$ranger->is_active ? 'danger' : 'primary'"
-                                    size="xs"
-                                >
-                                    {{ $ranger->is_active ? 'Deactivate' : 'Activate' }}
-                                </flux:button>
+                                <div class="flex justify-end items-center gap-1">
+                                    <flux:button
+                                        wire:click="toggleActive({{ $ranger->id }})"
+                                        :variant="$ranger->is_active ? 'danger' : 'primary'"
+                                        size="xs"
+                                    >
+                                        {{ $ranger->is_active ? 'Deactivate' : 'Activate' }}
+                                    </flux:button>
+                                    <flux:button
+                                        wire:click="openDelete({{ $ranger->id }})"
+                                        variant="ghost"
+                                        size="xs"
+                                        icon="trash"
+                                    />
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -146,4 +164,75 @@
             </flux:text>
         </div>
     </flux:card>
+
+    {{-- Create Modal --}}
+    <flux:modal wire:model.self="showCreateModal" class="min-w-[28rem]">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">Add Ranger</flux:heading>
+                <flux:text class="mt-2">Register a new ranger in the system.</flux:text>
+            </div>
+
+            <div class="space-y-4">
+                <flux:input wire:model="editName" label="Full Name" placeholder="Ibrahim Musa" required />
+                <flux:input wire:model="editPhone" label="Phone Number" placeholder="+2347012345678" required />
+                <flux:input wire:model="editEmail" label="Email" placeholder="ranger@wildlife.gov.ng" />
+                <flux:input wire:model="editLocation" label="Base Location" placeholder="Kamuku National Park HQ" />
+                <flux:input wire:model="editPin" label="PIN" maxlength="4" placeholder="0000" required />
+            </div>
+
+            <div class="flex gap-2">
+                <flux:spacer />
+                <flux:button wire:click="$set('showCreateModal', false)" variant="ghost">Cancel</flux:button>
+                <flux:button wire:click="create" variant="primary">Create Ranger</flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    {{-- Edit Modal --}}
+    <flux:modal wire:model.self="showEditModal" class="min-w-[28rem]">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">Edit Ranger</flux:heading>
+                <flux:text class="mt-2">Update ranger information.</flux:text>
+            </div>
+
+            <div class="space-y-4">
+                <flux:input wire:model="editName" label="Full Name" placeholder="Ibrahim Musa" required />
+                <flux:input wire:model="editPhone" label="Phone Number" placeholder="+2347012345678" required />
+                <flux:input wire:model="editEmail" label="Email" placeholder="ranger@wildlife.gov.ng" />
+                <flux:input wire:model="editLocation" label="Base Location" placeholder="Kamuku National Park HQ" />
+                <flux:input wire:model="editPin" label="PIN" maxlength="4" placeholder="0000" required />
+            </div>
+
+            <div class="flex gap-2">
+                <flux:spacer />
+                <flux:button wire:click="$set('showEditModal', false)" variant="ghost">Cancel</flux:button>
+                <flux:button wire:click="update" variant="primary">Save Changes</flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    {{-- Delete Confirmation Modal --}}
+    <flux:modal wire:model.self="showDeleteModal" class="min-w-[22rem]">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">Remove Ranger</flux:heading>
+                <flux:text class="mt-2">
+                    Are you sure you want to remove <strong>{{ $editName }}</strong>? This action cannot be undone.
+                </flux:text>
+            </div>
+
+            <div class="flex gap-2">
+                <flux:spacer />
+                <flux:button wire:click="$set('showDeleteModal', false)" variant="ghost">
+                    Cancel
+                </flux:button>
+                <flux:button wire:click="delete" variant="danger">
+                    Remove Ranger
+                </flux:button>
+            </div>
+        </div>
+    </flux:modal>
+</div>
 </div>

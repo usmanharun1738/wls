@@ -24,7 +24,9 @@ class RangerLogin extends Component
             'pin' => ['required', 'string', 'size:4'],
         ]);
 
-        $ranger = Ranger::where('phone_number', $this->phoneNumber)
+        $phone = $this->normalizePhone($this->phoneNumber);
+
+        $ranger = Ranger::where('phone_number', $phone)
             ->where('pin', $this->pin)
             ->where('is_active', true)
             ->first();
@@ -38,6 +40,36 @@ class RangerLogin extends Component
         session(['ranger_id' => $ranger->id, 'ranger_name' => $ranger->name]);
 
         $this->redirect(route('ranger.dashboard'), navigate: true);
+    }
+
+    /**
+     * Normalize Nigerian phone numbers to international format.
+     * 08119106475 → +2348119106475
+     */
+    protected function normalizePhone(string $phone): string
+    {
+        $phone = trim($phone);
+
+        // Already international format
+        if (str_starts_with($phone, '+')) {
+            return $phone;
+        }
+
+        // Strip any non-digit characters
+        $digits = preg_replace('/[^0-9]/', '', $phone);
+
+        // 234-prefixed without + (2348119106475 → +2348119106475)
+        if (str_starts_with($digits, '234') && strlen($digits) === 13) {
+            return '+'.$digits;
+        }
+
+        // Local format with leading 0 (08119106475 → +2348119106475)
+        if (str_starts_with($digits, '0') && strlen($digits) === 11) {
+            return '+234'.substr($digits, 1);
+        }
+
+        // Assume it's already valid
+        return '+'.$digits;
     }
 
     public function render(): View
