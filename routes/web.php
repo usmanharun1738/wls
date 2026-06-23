@@ -10,7 +10,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('rangers', 'rangers-dashboard')->name('rangers');
 });
 
-// --- Ranger routes (phone + PIN auth) ---
+// --- Ranger routes ---
 Route::livewire('ranger/login', 'ranger-login')->name('ranger.login');
 
 Route::middleware(['ranger.auth'])->group(function () {

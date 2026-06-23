@@ -1,8 +1,80 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 42" {{ $attributes }}>
-    <path 
-        fill="currentColor" 
-        fill-rule="evenodd" 
-        clip-rule="evenodd"
-        d="M17.2 5.633 8.6.855 0 5.633v26.51l16.2 9 16.2-9v-8.442l7.6-4.223V9.856l-8.6-4.777-8.6 4.777V18.3l-5.6 3.111V5.633ZM38 18.301l-5.6 3.11v-6.157l5.6-3.11V18.3Zm-1.06-7.856-5.54 3.078-5.54-3.079 5.54-3.078 5.54 3.079ZM24.8 18.3v-6.157l5.6 3.111v6.158L24.8 18.3Zm-1 1.732 5.54 3.078-13.14 7.302-5.54-3.078 13.14-7.3v-.002Zm-16.2 7.89 7.6 4.222V38.3L2 30.966V7.92l5.6 3.111v16.892ZM8.6 9.3 3.06 6.222 8.6 3.143l5.54 3.08L8.6 9.3Zm21.8 15.51-13.2 7.334V38.3l13.2-7.334v-6.156ZM9.6 11.034l5.6-3.11v14.6l-5.6 3.11v-14.6Z"
-    />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+    <defs>
+        <!-- Background Gradient -->
+        <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#2E7D32" />
+            <stop offset="100%" stop-color="#1A4D2E" />
+        </radialGradient>
+
+        <!-- Sky Gradient -->
+        <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#81C784" />
+            <stop offset="100%" stop-color="#388E3C" />
+        </linearGradient>
+
+        <!-- Shield Clip Path -->
+        <clipPath id="shieldClip">
+            <path d="M 200,60 L 290,90 L 290,180 Q 290,240 200,290 Q 110,240 110,180 L 110,90 Z" />
+        </clipPath>
+    </defs>
+
+    <!-- Main Background -->
+    <rect width="400" height="400" rx="40" fill="url(#bgGrad)" />
+
+    <!-- Shield Outline -->
+    <path d="M 200,60 L 290,90 L 290,180 Q 290,240 200,290 Q 110,240 110,180 L 110,90 Z" fill="#2E7D32" stroke="#FFFFFF" stroke-width="4" />
+
+    <!-- Landscape inside Shield -->
+    <g clip-path="url(#shieldClip)">
+        <!-- Sky -->
+        <rect x="100" y="50" width="200" height="240" fill="url(#skyGrad)" />
+
+        <!-- Birds -->
+        <path d="M 220,110 Q 225,105 230,110 Q 235,105 240,110 Q 230,115 220,110 Z" fill="#FFFFFF" />
+        <path d="M 240,100 Q 243,97 246,100 Q 249,97 252,100 Q 246,103 240,100 Z" fill="#FFFFFF" />
+
+        <!-- Paw Print in Sky -->
+        <path d="M 140,110 Q 150,100 160,110 Q 165,120 160,130 Q 150,135 140,130 Q 135,120 140,110 Z" fill="#FFFFFF" />
+        <ellipse cx="135" cy="95" rx="4" ry="7" fill="#FFFFFF" transform="rotate(-35 135 95)" />
+        <ellipse cx="152" cy="90" rx="4" ry="7" fill="#FFFFFF" transform="rotate(-5 152 90)" />
+        <ellipse cx="167" cy="98" rx="4" ry="7" fill="#FFFFFF" transform="rotate(25 167 98)" />
+
+        <!-- Back Mountain -->
+        <polygon points="100,280 180,140 280,280" fill="#2E7D32" />
+        <!-- Back Mountain Snow Cap -->
+        <polygon points="180,140 160,180 200,180" fill="#FFFFFF" />
+
+        <!-- Front Mountain -->
+        <polygon points="140,280 240,160 340,280" fill="#1B5E20" />
+        <!-- Front Mountain Snow Cap -->
+        <polygon points="240,160 215,200 265,200" fill="#FFFFFF" />
+
+        <!-- Ground Curve -->
+        <path d="M 100,260 Q 200,240 300,260" fill="none" stroke="#FFFFFF" stroke-width="3" />
+
+        <!-- Trees (Left) -->
+        <polygon points="120,280 130,250 140,280" fill="#FFFFFF" />
+        <polygon points="140,280 150,240 160,280" fill="#FFFFFF" />
+        <polygon points="160,280 170,260 180,280" fill="#FFFFFF" />
+
+        <!-- Trees (Right) -->
+        <polygon points="260,280 270,250 280,280" fill="#FFFFFF" />
+        <polygon points="240,280 250,240 260,280" fill="#FFFFFF" />
+        <polygon points="220,280 230,260 240,280" fill="#FFFFFF" />
+    </g>
+
+    <!-- Decorative Dots -->
+    <circle cx="40" cy="340" r="4" fill="#FFFFFF" />
+    <circle cx="360" cy="340" r="4" fill="#FFFFFF" />
+    <circle cx="50" cy="340" r="2" fill="#A5D6A7" />
+    <circle cx="350" cy="340" r="2" fill="#A5D6A7" />
+
+    <!-- Ribbon Background -->
+    <rect x="60" y="315" width="280" height="50" rx="25" fill="#FFFFFF" />
+
+    <!-- Main Text: WLS -->
+    <text x="200" y="348" font-family="'Arial Black', Impact, sans-serif" font-size="36" font-weight="900" fill="#1A4D2E" text-anchor="middle" letter-spacing="15">WLS</text>
+
+    <!-- Tagline -->
+    <text x="200" y="390" font-family="'Arial', sans-serif" font-size="16" font-weight="bold" fill="#A5D6A7" text-anchor="middle" letter-spacing="6">WILDLIFE SUPPORT</text>
 </svg>
