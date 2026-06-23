@@ -9,7 +9,7 @@ WLS (wild life support) is a mobile-first platform that enables rural communitie
 
 ## 0\. Implementation Status (Hackathon — June 27, 2026)
 
-> **Last updated**: 2026-06-21 | **Test suite**: 59 tests, 162 assertions, all passing | **Service code**: `*384*44275#` | **SMS short code**: `44275`
+> **Last updated**: 2026-06-23 | **Test suite**: 59 tests, 163 assertions, all passing | **Service code**: `*384*44275#` | **SMS short code**: `44275`
 
 ### 0.1 Achieved Objectives
 
@@ -17,13 +17,13 @@ WLS (wild life support) is a mobile-first platform that enables rural communitie
 |---|---|---|---|
 | 1 | **USSD Reporting Menu** | ✅ Live | 5-step flow: Welcome → Select type (Poaching/Snare/Injured Animal) → Enter location → Confirmation with ref ID. Tested e2e via ngrok + AT sandbox. |
 | 2 | **SMS Ranger Alerts** | ✅ Live | Location-based alerts: matches report location to nearest rangers via keyword matching, falls back to all active if no match. Sent from short code `44275`. |
-| 3 | **Admin Dashboard** | ✅ Built | Livewire + Flux UI at `/dashboard` — 5 stat cards, filterable reports table (status/type/date/search), inline verify/reject buttons, pagination. |
-| 4 | **Rangers Page** | ✅ Built | Livewire + Flux UI at `/rangers` — ranger stats, table with phone/email/location/status, pending alerts per ranger via `report_ranger` pivot. |
-| 5 | **Report Lifecycle** | ✅ Operational | Pending → Verified (by admin) or Rejected. Status badges color-coded. DB columns ready for airtime. |
+| 3 | **Airtime Rewards** | ✅ Live | `rewards` table + `AirtimeService` + wired to dashboard verify. ₦100 sent via AT Airtime API on verification. |
+| 4 | **Rangers Page** | ✅ Built | Livewire + Flux UI at `/rangers` — CRUD, search/filter, toggle active, clickable names with edit modal. |
+| 5 | **Report Lifecycle** | ✅ Operational | Pending → Verified (+ airtime) or Rejected (+ reason). Status badges color-coded. |
 | 6 | **Reporting History (USSD)** | ✅ Built | Option 2 from welcome menu shows last 5 reports with status. |
 | 7 | **Reward Balance (USSD)** | ✅ Built | Option 3 from welcome menu shows verified count × ₦100 = total earned. |
-| 8 | **AT SDK Integration** | ✅ Configured | `africastalking/africastalking` v3.0 with singleton service provider. USSD + SMS + Airtime APIs wired. |
-| 9 | **Test Suite** | ✅ 59 passing | 4 test files: `UssdServiceTest` (7 unit), `SmsServiceTest` (4 unit), `UssdCallbackTest` (5 feature), `ReportVerificationTest` (9 feature). |
+| 8 | **Ranger Dashboard** | ✅ Built | Phone + PIN login at `/ranger/login`, personal alerts dashboard at `/ranger/dashboard`. |
+| 9 | **Nigeria Coverage Map** | ✅ Built | SVG map highlighting Kaduna state with ranger base dots + stats panel. |
 | 10 | **ngrok + Callback URL** | ✅ Live | Callback registered at `https://d296-102-91-105-29.ngrok-free.app/api/ussd/callback` |
 | 11 | **Database Seeders** | ✅ Seeded | 10 active rangers with real Kaduna-area locations, 1 admin user (`admin@wls.test`). |
 

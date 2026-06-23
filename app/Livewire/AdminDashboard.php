@@ -151,7 +151,18 @@ class AdminDashboard extends Component
             'verified_by' => auth()->id(),
         ]);
 
-        Flux::toast(variant: 'success', text: "Report #{$report->reference_id} verified successfully.");
+        // Send airtime reward (fire-and-forget — don't block verify)
+        try {
+            $sent = app(AirtimeService::class)->sendReward($report);
+            $msg = $sent
+                ? "Report #{$report->reference_id} verified. Airtime reward sent!"
+                : "Report #{$report->reference_id} verified. Airtime pending.";
+        } catch (\Throwable $e) {
+            logger()->error('Airtime reward failed: '.$e->getMessage());
+            $msg = "Report #{$report->reference_id} verified. Airtime queued.";
+        }
+
+        Flux::toast(variant: 'success', text: $msg);
     }
 
     public function startReject(Report $report): void

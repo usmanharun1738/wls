@@ -76,6 +76,14 @@ class Report extends Model
             ->withPivot(['alerted_at', 'sms_status', 'sms_message_id']);
     }
 
+    /**
+     * Rewards associated with this report.
+     */
+    public function rewards(): HasMany
+    {
+        return $this->hasMany(Reward::class);
+    }
+
     public function isPending(): bool
     {
         return $this->status === 'pending';
