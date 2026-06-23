@@ -40,6 +40,7 @@ return [
         'api_key' => env('AFRICASTALKING_KEY'),
         'from' => env('AFRICASTALKING_FROM', 'WLS'),
         'currency' => env('AFRICASTALKING_CURRENCY', 'NGN'),
+        'airtime_simulate' => env('AFRICASTALKING_AIRTIME_SIMULATE', false),
     ],
 
 ];

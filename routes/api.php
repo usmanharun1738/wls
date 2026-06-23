@@ -11,6 +11,10 @@ Route::post('/ussd/callback', [UssdController::class, 'callback'])
     ->withoutMiddleware('csrf');
 Route::post('/sms/callback', [UssdController::class, 'smsCallback'])
     ->withoutMiddleware('csrf');
+Route::post('/airtime/validation', [UssdController::class, 'airtimeValidation'])
+    ->withoutMiddleware('csrf');
+Route::post('/airtime/status', [UssdController::class, 'airtimeStatus'])
+    ->withoutMiddleware('csrf');
 
 // --- Admin protected routes ---
 Route::middleware(['auth', 'verified'])->prefix('admin')->group(function () {

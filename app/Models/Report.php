@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -78,6 +79,8 @@ class Report extends Model
 
     /**
      * Rewards associated with this report.
+     *
+     * @return HasMany<Reward>
      */
     public function rewards(): HasMany
     {

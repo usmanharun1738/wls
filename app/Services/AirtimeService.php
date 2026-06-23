@@ -25,6 +25,23 @@ class AirtimeService
             return false;
         }
 
+        // Demo/sandbox mode — simulate successful airtime delivery
+        if (config('services.africastalking.airtime_simulate')) {
+            $reward = Reward::create([
+                'report_id' => $report->id,
+                'phone_number' => $report->phone_number,
+                'amount' => $report->reward_amount,
+                'currency_code' => $this->currency,
+                'status' => 'sent',
+                'transaction_id' => 'WLS-SIM-'.strtoupper(uniqid()),
+                'error_message' => null,
+            ]);
+
+            $report->update(['reward_sent' => true]);
+
+            return true;
+        }
+
         $response = $this->at->airtime()->send([
             'recipients' => [
                 [
