@@ -163,6 +163,14 @@ class AdminDashboard extends Component
             $msg = "Report #{$report->reference_id} verified. Airtime queued.";
         }
 
+        // Send SMS notification to reporter
+        try {
+            $smsMessage = "Congratulations! Your report #{$report->reference_id} has been verified and a reward of NGN {$report->reward_amount} airtime has been sent to {$report->phone_number}. Thank you for helping protect wildlife! - WLS Team";
+            app(SmsService::class)->send($report->phone_number, $smsMessage);
+        } catch (\Throwable $e) {
+            logger()->error('Reporter SMS notification failed: '.$e->getMessage());
+        }
+
         Flux::toast(variant: 'success', text: $msg);
     }
 
