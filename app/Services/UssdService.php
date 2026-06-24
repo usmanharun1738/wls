@@ -48,8 +48,7 @@ class UssdService
      */
     protected function processStep(UssdSession $session, string $input): string
     {
-        // AT sends cumulative text like "1*1*Near Kaduna River Bridge"
-        // We only need the last input after the final "*"
+
         $input = $this->extractLastInput($input);
 
         // Check for session reset (option 0 from welcome)
@@ -62,6 +61,7 @@ class UssdService
             1 => $this->handleWelcomeSelection($session, $input),
             2 => $this->handleIncidentTypeSelection($session, $input),
             3 => $this->handleLocationInput($session, $input),
+            4 => $this->handleAdditionalInfo($session, $input),
             default => $this->resetSession($session),
         };
     }
@@ -73,7 +73,7 @@ class UssdService
     {
         $session->update(['current_step' => 1]);
 
-        return $this->con("Welcome to Wildlife Alert\n1. Report Incident\n2. Check My Reports\n3. Check Balance");
+        return $this->con("Welcome to Wild life Support\n1. Report Incident\n2. Check My Reports\n3. Check Balance");
     }
 
     /**
@@ -121,7 +121,7 @@ class UssdService
             'data' => $existingData,
         ]);
 
-        return $this->con('Enter location (e.g., "Near River Bridge" or GPS coords):');
+        return $this->con('Enter location (e.g., "Near River Kaduna" or GPS coords):');
     }
 
     /**
@@ -133,22 +133,54 @@ class UssdService
             return $this->con('Please enter a location description:');
         }
 
-        return $this->createReport($session, trim($input));
+        $data = (array) $session->data;
+        $data['location'] = trim($input);
+        $session->update(['data' => $data]);
+
+        $incidentType = $data['incident_type'] ?? 'poaching';
+
+        // additional data only for poaching
+
+        if ($incidentType === 'poaching') {
+            $session->update(['current_step' => 4]);
+
+            return $this->con('Additional info (e.g., animal name, number of poachers, vehicle plate no) ');
+        }
+
+        return $this->createReport($session);
+    }
+
+    /**Handle Additional info */
+
+    protected function handleAdditionalInfo(UssdSession $session, string $input): string
+    {
+        if (blank(trim($input))) {
+            return $this->con('Please provide some additional details to help rangers:');
+        }
+
+        $data = (array) $session->data;
+        $data['additional_info'] = trim($input); // new column
+        $session->update(['data' => $data]);
+
+        return $this->createReport($session);
     }
 
     /**
      * Create the report record and trigger SMS alerts.
      */
-    protected function createReport(UssdSession $session, string $location): string
+    protected function createReport(UssdSession $session): string
     {
         $data = (array) $session->data;
         $incidentType = $data['incident_type'] ?? 'poaching';
+        $location = $data['location'] ?? '';
+        $additionalInfo = $data['additional_info'] ?? null;
 
         $report = Report::create([
             'reference_id' => $this->generateReferenceId(),
             'phone_number' => $session->phone_number,
             'incident_type' => $incidentType,
             'location' => $location,
+            'additional_info' => $additionalInfo,
             'status' => 'pending',
         ]);
 

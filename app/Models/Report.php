@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
  * @property string $phone_number
  * @property string $incident_type
  * @property string $location
+ * @property string $additional_info
  * @property ?float $latitude
  * @property ?float $longitude
  * @property ?string $description
@@ -33,6 +34,7 @@ use Illuminate\Support\Carbon;
     'phone_number',
     'incident_type',
     'location',
+    'additional_info',
     'latitude',
     'longitude',
     'description',
