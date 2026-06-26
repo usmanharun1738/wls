@@ -139,17 +139,23 @@ class UssdService
 
         $incidentType = $data['incident_type'] ?? 'poaching';
 
-        // additional data only for poaching
+        // Ask for additional info only for poaching or injured animal
+        if ($incidentType === 'poaching' || $incidentType === 'injured_animal') {
+            // Customise prompt based on type
+            if ($incidentType === 'poaching') {
+                $prompt = 'Additional info (e.g., animal name, number of poachers, vehicle plate no): ';
+            } else { // injured_animal
+                $prompt = 'Additional info (e.g., animal species, injury type): ';
+            }
 
-        if ($incidentType === 'poaching') {
             $session->update(['current_step' => 4]);
 
-            return $this->con('Additional info (e.g., animal name, number of poachers, vehicle plate no) ');
+            return $this->con($prompt);
         }
 
+        // For snare/trap, skip to report creation
         return $this->createReport($session);
     }
-
     /**Handle Additional info */
 
     protected function handleAdditionalInfo(UssdSession $session, string $input): string
