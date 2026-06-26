@@ -93,6 +93,18 @@ class UssdService
         }
 
         if ($input === '4') {
+            // Check if caller is an active ranger first
+            $phone = $this->normalizePhone($session->phone_number);
+            $ranger = Ranger::where('phone_number', $phone)
+                ->where('is_active', true)
+                ->exists();
+
+            if (! $ranger) {
+                $session->delete();
+
+                return $this->end('Service not available to you.');
+            }
+
             // Ranger airtime request — ask for PIN
             $session->update([
                 'current_step' => 8,
@@ -237,7 +249,7 @@ class UssdService
         if (! $ranger) {
             $session->delete();
 
-            return $this->end('Invalid PIN or you are not registered as a ranger. Please contact admin.');
+            return $this->end('Invalid PIN. Please try again later.');
         }
 
         // Check 24-hour limit
