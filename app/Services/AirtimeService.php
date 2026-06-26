@@ -93,4 +93,61 @@ class AirtimeService
 
         return true;
     }
+
+    /**
+     * Send airtime directly to a phone number (used for ranger self-request).
+     */
+    public function sendToPhone(string $phoneNumber, float $amount, ?string $note = null): Reward
+    {
+        $rangerPhone = $phoneNumber;
+
+        if (config('services.africastalking.airtime_simulate')) {
+            return Reward::create([
+                'report_id' => null,
+                'phone_number' => $rangerPhone,
+                'amount' => $amount,
+                'currency_code' => $this->currency,
+                'status' => 'sent',
+                'transaction_id' => 'WLS-SIM-'.strtoupper(uniqid()),
+                'error_message' => $note,
+            ]);
+        }
+
+        $response = Http::withHeaders([
+            'apiKey' => $this->apiKey,
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        ])->post($this->baseUrl.'airtime/send', [
+            'username' => $this->username,
+            'recipients' => [
+                [
+                    'phoneNumber' => $rangerPhone,
+                    'amount' => $this->currency.' '.number_format($amount, 2),
+                ],
+            ],
+        ]);
+
+        $data = $response->json();
+        $firstResponse = $data['responses'][0] ?? null;
+
+        $status = ($firstResponse && ($firstResponse['status'] ?? '') === 'Sent') ? 'sent' : 'failed';
+        $txId = $firstResponse['requestId'] ?? null;
+        $apiError = $data['errorMessage'] ?? null;
+        $respError = $firstResponse['errorMessage'] ?? null;
+        $errorMsg = match (true) {
+            $respError && $respError !== 'None' => $respError,
+            $apiError && $apiError !== 'None' => $apiError,
+            default => $note,
+        };
+
+        return Reward::create([
+            'report_id' => null,
+            'phone_number' => $rangerPhone,
+            'amount' => $amount,
+            'currency_code' => $this->currency,
+            'status' => $status,
+            'transaction_id' => $txId,
+            'error_message' => $errorMsg,
+        ]);
+    }
 }

@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use AfricasTalking\SDK\AfricasTalking;
+use App\Models\Ranger;
 use App\Models\Report;
+use App\Models\Reward;
 use App\Models\UssdSession;
 
 class UssdService
@@ -62,6 +64,7 @@ class UssdService
             2 => $this->handleIncidentTypeSelection($session, $input),
             3 => $this->handleLocationInput($session, $input),
             4 => $this->handleAdditionalInfo($session, $input),
+            8 => $this->handleAirtimePin($session, $input),
             default => $this->resetSession($session),
         };
     }
@@ -73,7 +76,7 @@ class UssdService
     {
         $session->update(['current_step' => 1]);
 
-        return $this->con("Welcome to Wild life Support\n1. Report Incident\n2. Check My Reports\n3. Check Balance");
+        return $this->con("Welcome to Wild life Support\n1. Report Incident\n2. Check My Reports\n3. Check Balance\n4. Request Airtime");
     }
 
     /**
@@ -87,6 +90,16 @@ class UssdService
 
         if ($input === '3') {
             return $this->showBalance($session);
+        }
+
+        if ($input === '4') {
+            // Ranger airtime request — ask for PIN
+            $session->update([
+                'current_step' => 8,
+                'data' => ['mode' => 'airtime_request'],
+            ]);
+
+            return $this->con('Enter your 4-digit PIN to request NGN 100 airtime:');
         }
 
         // Default or "1" — show incident type sub-menu
@@ -203,6 +216,80 @@ class UssdService
         $session->delete();
 
         return $this->end("Thank you! Report #{$report->reference_id} submitted.\nRangers have been alerted.\nYou will receive NGN 100 if verified.");
+    }
+
+    /**
+     * Handle ranger airtime request — validate PIN, check 24h limit, send airtime.
+     */
+    protected function handleAirtimePin(UssdSession $session, string $input): string
+    {
+        if (! preg_match('/^\d{4}$/', $input)) {
+            return $this->con('Invalid PIN. Please enter a 4-digit PIN:');
+        }
+
+        $phone = $this->normalizePhone($session->phone_number);
+
+        $ranger = Ranger::where('phone_number', $phone)
+            ->where('pin', $input)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $ranger) {
+            $session->delete();
+
+            return $this->end('Invalid PIN or you are not registered as a ranger. Please contact admin.');
+        }
+
+        // Check 24-hour limit
+        $recentAirtime = Reward::where('phone_number', $phone)
+            ->whereNull('report_id')
+            ->where('created_at', '>=', now()->subHours(24))
+            ->exists();
+
+        if ($recentAirtime) {
+            $session->delete();
+
+            return $this->end('You already requested airtime in the last 24 hours. Please try again later.');
+        }
+
+        // Send NGN 100 airtime
+        try {
+            $reward = app(AirtimeService::class)->sendToPhone($phone, 100.00, 'Ranger airtime request');
+            $status = $reward->status === 'sent'
+                ? "NGN 100 airtime has been sent to {$phone}. Thank you for your service!"
+                : 'Airtime request failed. Please contact admin.';
+        } catch (\Throwable $e) {
+            logger()->error('Ranger airtime request failed: '.$e->getMessage());
+            $status = 'Airtime request failed. Please try again later.';
+        }
+
+        $session->delete();
+
+        return $this->end($status);
+    }
+
+    /**
+     * Normalize Nigerian phone numbers to international format.
+     */
+    protected function normalizePhone(string $phone): string
+    {
+        $phone = trim($phone);
+
+        if (str_starts_with($phone, '+')) {
+            return $phone;
+        }
+
+        $digits = preg_replace('/[^0-9]/', '', $phone);
+
+        if (str_starts_with($digits, '234') && strlen($digits) === 13) {
+            return '+'.$digits;
+        }
+
+        if (str_starts_with($digits, '0') && strlen($digits) === 11) {
+            return '+234'.substr($digits, 1);
+        }
+
+        return '+'.$digits;
     }
 
     /**
