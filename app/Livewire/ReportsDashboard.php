@@ -31,6 +31,8 @@ class ReportsDashboard extends Component
 
     public string $rejectionReason = '';
 
+    public bool $showRejectModal = false;
+
     public function updatingFilterStatus(): void
     {
         $this->resetPage();
@@ -178,6 +180,7 @@ class ReportsDashboard extends Component
 
         $this->rejectingReportId = $report->id;
         $this->rejectionReason = '';
+        $this->showRejectModal = true;
     }
 
     public function confirmReject(): void
@@ -186,16 +189,14 @@ class ReportsDashboard extends Component
 
         if (! $report) {
             Flux::toast(variant: 'error', text: 'Report not found.');
-            $this->rejectingReportId = null;
+            $this->cancelReject();
 
             return;
         }
 
-        $report->refresh();
-
         if (! $report->isPending()) {
             Flux::toast(variant: 'error', text: "Report #{$report->reference_id} is not pending (current status: {$report->status}).");
-            $this->rejectingReportId = null;
+            $this->cancelReject();
 
             return;
         }
@@ -208,12 +209,12 @@ class ReportsDashboard extends Component
 
         Flux::toast(variant: 'success', text: "Report #{$report->reference_id} rejected.");
 
-        $this->rejectingReportId = null;
-        $this->rejectionReason = '';
+        $this->cancelReject();
     }
 
     public function cancelReject(): void
     {
+        $this->showRejectModal = false;
         $this->rejectingReportId = null;
         $this->rejectionReason = '';
     }

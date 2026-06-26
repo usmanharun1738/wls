@@ -304,7 +304,7 @@
     </div>
 
     {{-- Reject Modal --}}
-    <flux:modal wire:model.self="rejectingReportId" class="min-w-[24rem]">
+    <flux:modal wire:model="showRejectModal" class="min-w-[24rem]">
         <div class="space-y-6">
             <div>
                 <flux:heading size="lg">Reject Report</flux:heading>
