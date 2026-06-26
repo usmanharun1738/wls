@@ -5,14 +5,26 @@ namespace App\Services;
 use AfricasTalking\SDK\AfricasTalking;
 use App\Models\Report;
 use App\Models\Reward;
+use Illuminate\Support\Facades\Http;
 
 class AirtimeService
 {
     protected string $currency;
 
+    protected string $apiKey;
+
+    protected string $username;
+
+    protected string $baseUrl;
+
     public function __construct(protected AfricasTalking $at)
     {
         $this->currency = config('services.africastalking.currency', 'NGN');
+        $this->apiKey = config('services.africastalking.api_key');
+        $this->username = config('services.africastalking.username', 'sandbox');
+
+        $domain = $this->username === 'sandbox' ? 'api.sandbox.africastalking.com' : 'api.africastalking.com';
+        $this->baseUrl = "https://{$domain}/version1/";
     }
 
     /**
@@ -27,42 +39,35 @@ class AirtimeService
 
         // Demo/sandbox mode — simulate successful airtime delivery
         if (config('services.africastalking.airtime_simulate')) {
-            $reward = Reward::create([
-                'report_id' => $report->id,
-                'phone_number' => $report->phone_number,
-                'amount' => $report->reward_amount,
-                'currency_code' => $this->currency,
-                'status' => 'sent',
-                'transaction_id' => 'WLS-SIM-'.strtoupper(uniqid()),
-                'error_message' => null,
-            ]);
-
-            $report->update(['reward_sent' => true]);
-
-            return true;
+            return $this->simulateReward($report);
         }
 
-        $response = $this->at->airtime()->send([
+        // Send via AT API using JSON (the SDK uses form-encoded which sandbox rejects)
+        $response = Http::withHeaders([
+            'apiKey' => $this->apiKey,
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        ])->post($this->baseUrl.'airtime/send', [
+            'username' => $this->username,
             'recipients' => [
                 [
                     'phoneNumber' => $report->phone_number,
-                    'currencyCode' => $this->currency,
-                    'amount' => (float) $report->reward_amount,
+                    'amount' => $this->currency.' '.number_format((float) $report->reward_amount, 2),
                 ],
             ],
         ]);
 
-        $data = $response['data'] ?? null;
-        $firstResponse = $data->responses[0] ?? null;
+        $data = $response->json();
+        $firstResponse = $data['responses'][0] ?? null;
 
         $reward = Reward::create([
             'report_id' => $report->id,
             'phone_number' => $report->phone_number,
             'amount' => $report->reward_amount,
             'currency_code' => $this->currency,
-            'status' => ($firstResponse && $firstResponse->status === 'Sent') ? 'sent' : 'failed',
-            'transaction_id' => $firstResponse?->requestId ?? null,
-            'error_message' => $firstResponse?->errorMessage ?? $data->errorMessage ?? null,
+            'status' => ($firstResponse && ($firstResponse['status'] ?? '') === 'Sent') ? 'sent' : 'failed',
+            'transaction_id' => $firstResponse['requestId'] ?? null,
+            'error_message' => $firstResponse['errorMessage'] === 'None' ? null : ($firstResponse['errorMessage'] ?? $data['errorMessage'] ?? null),
         ]);
 
         if ($reward->status === 'sent') {
@@ -70,5 +75,22 @@ class AirtimeService
         }
 
         return $reward->status === 'sent';
+    }
+
+    protected function simulateReward(Report $report): bool
+    {
+        $reward = Reward::create([
+            'report_id' => $report->id,
+            'phone_number' => $report->phone_number,
+            'amount' => $report->reward_amount,
+            'currency_code' => $this->currency,
+            'status' => 'sent',
+            'transaction_id' => 'WLS-SIM-'.strtoupper(uniqid()),
+            'error_message' => null,
+        ]);
+
+        $report->update(['reward_sent' => true]);
+
+        return true;
     }
 }
