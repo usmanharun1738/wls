@@ -20,7 +20,7 @@ beforeEach(function () {
     Ranger::factory()->count(5)->create();
 });
 
-test('ussd callback returns welcome menu on first request', function () {
+test('ussd callback shows language selector on first request', function () {
     $response = $this->postJson('/api/ussd/callback', [
         'sessionId' => 'feature-test-001',
         'phoneNumber' => '+2347000000100',
@@ -29,8 +29,8 @@ test('ussd callback returns welcome menu on first request', function () {
 
     $response->assertOk()
         ->assertHeader('Content-Type', 'text/plain; charset=UTF-8')
-        ->assertSee('Welcome to Wildlife Alert')
-        ->assertSee('1. Report Incident');
+        ->assertSee('Select language:')
+        ->assertSee('1. English');
 });
 
 test('ussd callback shows incident types on option 1', function () {
@@ -38,6 +38,7 @@ test('ussd callback shows incident types on option 1', function () {
         'session_id' => 'feature-test-002',
         'phone_number' => '+2347000000200',
         'current_step' => 1,
+        'data' => ['lang' => 'en'],
     ]);
 
     $response = $this->postJson('/api/ussd/callback', [
@@ -58,7 +59,7 @@ test('ussd callback creates report on full flow', function () {
         'session_id' => 'feature-test-003',
         'phone_number' => '+2347000000300',
         'current_step' => 3,
-        'data' => ['incident_type' => 'poaching', 'menu_option' => '1'],
+        'data' => ['incident_type' => 'snare', 'lang' => 'en'],
     ]);
 
     $response = $this->postJson('/api/ussd/callback', [
@@ -79,7 +80,7 @@ test('ussd callback handles empty location gracefully', function () {
         'session_id' => 'feature-test-004',
         'phone_number' => '+2347000000400',
         'current_step' => 3,
-        'data' => ['incident_type' => 'snare'],
+        'data' => ['incident_type' => 'snare', 'lang' => 'en'],
     ]);
 
     $response = $this->postJson('/api/ussd/callback', [

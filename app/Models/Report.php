@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\IncidentType;
 use Database\Factories\ReportFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -57,6 +58,7 @@ class Report extends Model
         return [
             'latitude' => 'decimal:8',
             'longitude' => 'decimal:8',
+            'incident_type' => IncidentType::class,
             'reward_amount' => 'decimal:2',
             'reward_sent' => 'boolean',
         ];

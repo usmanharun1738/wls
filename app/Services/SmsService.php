@@ -148,7 +148,7 @@ class SmsService
      */
     protected function formatAlertMessage(Report $report, int $rangerCount): string
     {
-        $type = strtoupper(str_replace('_', ' ', $report->incident_type));
+        $type = strtoupper(str_replace('_', ' ', $report->incident_type->value ?? ''));
         $rangerWord = $rangerCount === 1 ? 'ranger' : 'rangers';
 
         return "[WLS ALERT] {$type} reported at {$report->location}. Ref: #{$report->reference_id}. {$rangerCount} {$rangerWord} alerted. Please respond.";

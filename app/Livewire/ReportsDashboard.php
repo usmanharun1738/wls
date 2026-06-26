@@ -121,7 +121,7 @@ class ReportsDashboard extends Component
                 fputcsv($handle, [
                     $r->reference_id,
                     $r->phone_number,
-                    $r->incident_type,
+                    $r->incident_type->value ?? '',
                     $r->location,
                     $r->additional_info ?? '',
                     $r->status,

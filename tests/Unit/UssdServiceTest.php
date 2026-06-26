@@ -1,6 +1,7 @@
 <?php
 
 use AfricasTalking\SDK\AfricasTalking;
+use App\Enums\IncidentType;
 use App\Models\Report;
 use App\Models\UssdSession;
 use App\Services\SmsService;
@@ -19,7 +20,7 @@ beforeEach(function () {
     $this->ussdService = new UssdService($this->at, $this->smsService);
 });
 
-test('welcome screen displays correct menu on first request', function () {
+test('welcome screen shows language selector on first request', function () {
     $response = $this->ussdService->handleRequest([
         'sessionId' => 'test-session-001',
         'phoneNumber' => '+2347000000001',
@@ -27,15 +28,15 @@ test('welcome screen displays correct menu on first request', function () {
     ]);
 
     expect($response)->toStartWith('CON')
-        ->and($response)->toContain('Welcome to Wildlife Alert')
-        ->and($response)->toContain('1. Report Incident')
-        ->and($response)->toContain('2. Check My Reports')
-        ->and($response)->toContain('3. Check Balance');
+        ->and($response)->toContain('Select language:')
+        ->and($response)->toContain('1. English')
+        ->and($response)->toContain('2. Hausa')
+        ->and($response)->toContain('3. Kiswahili');
 
-    // Session should be created at step 1
+    // Session should be created at step 0 (language selection)
     $session = UssdSession::where('session_id', 'test-session-001')->first();
     expect($session)->not->toBeNull()
-        ->and($session->current_step)->toBe(1);
+        ->and($session->current_step)->toBe(0);
 });
 
 test('selecting report incident shows incident type menu', function () {
@@ -44,6 +45,7 @@ test('selecting report incident shows incident type menu', function () {
         'session_id' => 'test-session-002',
         'phone_number' => '+2347000000002',
         'current_step' => 1,
+        'data' => ['lang' => 'en'],
     ]);
 
     $response = $this->ussdService->handleRequest([
@@ -64,7 +66,7 @@ test('selecting an incident type prompts for location', function () {
         'session_id' => 'test-session-003',
         'phone_number' => '+2347000000003',
         'current_step' => 2,
-        'data' => ['menu_option' => '1'],
+        'data' => ['menu_option' => '1', 'lang' => 'en'],
     ]);
 
     $response = $this->ussdService->handleRequest([
@@ -86,7 +88,7 @@ test('submitting location creates report and ends session', function () {
         'session_id' => 'test-session-004',
         'phone_number' => '+2347000000004',
         'current_step' => 3,
-        'data' => ['incident_type' => 'poaching', 'menu_option' => '1'],
+        'data' => ['incident_type' => 'snare', 'lang' => 'en'],
     ]);
 
     $response = $this->ussdService->handleRequest([
@@ -103,7 +105,7 @@ test('submitting location creates report and ends session', function () {
     $report = Report::where('phone_number', '+2347000000004')->first();
     expect($report)->not->toBeNull()
         ->and($report->location)->toBe('Near River Kaduna Bridge')
-        ->and($report->incident_type)->toBe('poaching')
+        ->and($report->incident_type)->toBe(IncidentType::Snare)
         ->and($report->status)->toBe('pending');
 
     // Session should be cleaned up
@@ -115,6 +117,7 @@ test('checking reports shows history for caller', function () {
         'session_id' => 'test-session-005',
         'phone_number' => '+2347000000005',
         'current_step' => 1,
+        'data' => ['lang' => 'en'],
     ]);
 
     // Create some reports for this user
@@ -138,6 +141,7 @@ test('checking balance shows reward total', function () {
         'session_id' => 'test-session-006',
         'phone_number' => '+2347000000006',
         'current_step' => 1,
+        'data' => ['lang' => 'en'],
     ]);
 
     Report::factory()->count(3)->create([
