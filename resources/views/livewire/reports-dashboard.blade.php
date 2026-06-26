@@ -1,4 +1,4 @@
-<div class="flex h-full w-full flex-1 flex-col gap-6 rounded-xl" wire:poll.30s>
+<div class="flex h-full w-full flex-1 flex-col gap-6 rounded-xl" wire:poll.10s>
     {{-- Stats Cards --}}
     <div class="grid auto-rows-min gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <flux:card class="space-y-1 cursor-pointer hover:ring-2 hover:ring-zinc-300 dark:hover:ring-zinc-600 transition-all" wire:click="filterByStatus('')">
