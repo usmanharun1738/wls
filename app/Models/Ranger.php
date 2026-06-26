@@ -19,6 +19,8 @@ use Illuminate\Support\Carbon;
  * @property ?float $longitude
  * @property bool $is_active
  * @property string $pin
+ * @property int $pin_attempts
+ * @property ?Carbon $locked_until
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
@@ -31,6 +33,8 @@ use Illuminate\Support\Carbon;
     'longitude',
     'is_active',
     'pin',
+    'pin_attempts',
+    'locked_until',
 ])]
 class Ranger extends Model
 {
@@ -52,6 +56,7 @@ class Ranger extends Model
             'latitude' => 'decimal:8',
             'longitude' => 'decimal:8',
             'is_active' => 'boolean',
+            'locked_until' => 'datetime',
         ];
     }
 }

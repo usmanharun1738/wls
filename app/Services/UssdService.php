@@ -7,6 +7,7 @@ use App\Models\Ranger;
 use App\Models\Report;
 use App\Models\Reward;
 use App\Models\UssdSession;
+use Illuminate\Support\Facades\Log;
 
 class UssdService
 {
@@ -53,20 +54,31 @@ class UssdService
 
         $input = $this->extractLastInput($input);
 
-        // Check for session reset (option 0 from welcome)
-        if ($input === '0' && $session->current_step > 0) {
+        // Reset stale sessions (>10 minutes old)
+        if ($session->created_at->diffInMinutes(now()) > 10) {
             return $this->resetSession($session);
         }
 
-        return match ($session->current_step) {
+        $response = match ($session->current_step) {
             0 => $this->showWelcome($session),
             1 => $this->handleWelcomeSelection($session, $input),
             2 => $this->handleIncidentTypeSelection($session, $input),
             3 => $this->handleLocationInput($session, $input),
             4 => $this->handleAdditionalInfo($session, $input),
+            5 => $this->handleConfirmation($session, $input),
             8 => $this->handleAirtimePin($session, $input),
             default => $this->resetSession($session),
         };
+
+        Log::channel('ussd')->info('USSD step processed', [
+            'session_id' => $session->session_id,
+            'phone' => $session->phone_number,
+            'step' => $session->current_step,
+            'input' => $input,
+            'response_prefix' => str_starts_with($response, 'CON') ? 'CON' : 'END',
+        ]);
+
+        return $response;
     }
 
     /**
@@ -84,6 +96,15 @@ class UssdService
      */
     protected function handleWelcomeSelection(UssdSession $session, string $input): string
     {
+        if ($input === '1') {
+            $session->update([
+                'current_step' => 2,
+                'data' => ['menu_option' => $input],
+            ]);
+
+            return $this->con("Select incident type:\n1. Poaching\n2. Snare/Trap\n3. Injured Animal\n0. Back");
+        }
+
         if ($input === '2') {
             return $this->showReportingHistory($session);
         }
@@ -111,16 +132,13 @@ class UssdService
                 'data' => ['mode' => 'airtime_request'],
             ]);
 
-            return $this->con('Enter your 4-digit PIN to request NGN 100 airtime:');
+            $amount = config('services.africastalking.airtime_amount', 100);
+
+            return $this->con("Enter your 4-digit PIN to request NGN {$amount} airtime:");
         }
 
-        // Default or "1" — show incident type sub-menu
-        $session->update([
-            'current_step' => 2,
-            'data' => ['menu_option' => $input],
-        ]);
-
-        return $this->con("Select incident type:\n1. Poaching\n2. Snare/Trap\n3. Injured Animal\n0. Back");
+        // Invalid option — show error and re-display welcome
+        return $this->con("Invalid option.\nWelcome to Wild life Support\n1. Report Incident\n2. Check My Reports\n3. Check Balance\n4. Request Airtime");
     }
 
     /**
@@ -154,6 +172,12 @@ class UssdService
      */
     protected function handleLocationInput(UssdSession $session, string $input): string
     {
+        if ($input === '0') {
+            $session->update(['current_step' => 2]);
+
+            return $this->con("Select incident type:\n1. Poaching\n2. Snare/Trap\n3. Injured Animal\n0. Back");
+        }
+
         if (blank(trim($input))) {
             return $this->con('Please enter a location description:');
         }
@@ -185,15 +209,63 @@ class UssdService
 
     protected function handleAdditionalInfo(UssdSession $session, string $input): string
     {
+        if ($input === '0') {
+            $session->update(['current_step' => 3]);
+
+            return $this->con('Enter location (e.g., "Near River Kaduna" or GPS coords):');
+        }
+
         if (blank(trim($input))) {
             return $this->con('Please provide some additional details to help rangers:');
         }
 
         $data = (array) $session->data;
         $data['additional_info'] = trim($input); // new column
-        $session->update(['data' => $data]);
+        $session->update([
+            'data' => $data,
+            'current_step' => 5,
+        ]);
 
-        return $this->createReport($session);
+        $incidentType = $data['incident_type'] ?? 'poaching';
+        $typeLabel = match ($incidentType) {
+            'poaching' => 'Poaching',
+            'snare' => 'Snare/Trap',
+            'injured_animal' => 'Injured Animal',
+            default => ucfirst($incidentType),
+        };
+        $location = $data['location'] ?? '';
+        $additionalInfo = $data['additional_info'] ?? '';
+
+        $summary = "Confirm report:\nType: {$typeLabel}\nLocation: {$location}";
+        if ($additionalInfo) {
+            $summary .= "\nAdditional: {$additionalInfo}";
+        }
+        $summary .= "\n1. Confirm\n2. Edit\n0. Cancel";
+
+        return $this->con($summary);
+    }
+
+    /**
+     * Step 5: Show report summary and ask for confirmation.
+     * 1 = Confirm → create report
+     * 2 = Edit → go back to location
+     * 0 = Cancel → reset to welcome
+     */
+    protected function handleConfirmation(UssdSession $session, string $input): string
+    {
+        if ($input === '1') {
+            return $this->createReport($session);
+        }
+
+        if ($input === '2') {
+            // Go back to edit location
+            $session->update(['current_step' => 3]);
+
+            return $this->con('Enter location (e.g., "Near River Kaduna" or GPS coords):');
+        }
+
+        // 0 or anything else — cancel
+        return $this->resetSession($session);
     }
 
     /**
@@ -206,6 +278,8 @@ class UssdService
         $location = $data['location'] ?? '';
         $additionalInfo = $data['additional_info'] ?? null;
 
+        $amount = config('services.africastalking.airtime_amount', 100);
+
         $report = Report::create([
             'reference_id' => $this->generateReferenceId(),
             'phone_number' => $session->phone_number,
@@ -213,6 +287,7 @@ class UssdService
             'location' => $location,
             'additional_info' => $additionalInfo,
             'status' => 'pending',
+            'reward_amount' => $amount,
         ]);
 
         // Alert rangers via SMS (fire-and-forget — don't break USSD if SMS fails)
@@ -227,7 +302,7 @@ class UssdService
         // Clean up session
         $session->delete();
 
-        return $this->end("Thank you! Report #{$report->reference_id} submitted.\nRangers have been alerted.\nYou will receive NGN 100 if verified.");
+        return $this->end("Thank you! Report #{$report->reference_id} submitted.\nRangers have been alerted.\nYou will receive NGN {$amount} if verified.");
     }
 
     /**
@@ -235,6 +310,10 @@ class UssdService
      */
     protected function handleAirtimePin(UssdSession $session, string $input): string
     {
+        if ($input === '0') {
+            return $this->resetSession($session);
+        }
+
         if (! preg_match('/^\d{4}$/', $input)) {
             return $this->con('Invalid PIN. Please enter a 4-digit PIN:');
         }
@@ -242,15 +321,48 @@ class UssdService
         $phone = $this->normalizePhone($session->phone_number);
 
         $ranger = Ranger::where('phone_number', $phone)
-            ->where('pin', $input)
             ->where('is_active', true)
             ->first();
 
         if (! $ranger) {
             $session->delete();
 
-            return $this->end('Invalid PIN. Please try again later.');
+            return $this->end('Service not available to you.');
         }
+
+        // Check if account is locked
+        if ($ranger->locked_until && $ranger->locked_until->isFuture()) {
+            $minutes = now()->diffInMinutes($ranger->locked_until);
+            $session->delete();
+
+            return $this->end("Account locked. Try again in {$minutes} minutes.");
+        }
+
+        // Verify PIN
+        if ($ranger->pin !== $input) {
+            $ranger->increment('pin_attempts');
+
+            if ($ranger->pin_attempts >= 3) {
+                $ranger->update([
+                    'locked_until' => now()->addHour(),
+                    'pin_attempts' => 0,
+                ]);
+                $session->delete();
+
+                return $this->end('Too many wrong attempts. Account locked for 1 hour.');
+            }
+
+            $remaining = 3 - $ranger->pin_attempts;
+            $session->delete();
+
+            return $this->end("Invalid PIN. {$remaining} attempt(s) remaining.");
+        }
+
+        // Correct PIN — reset lockout counters
+        $ranger->update([
+            'pin_attempts' => 0,
+            'locked_until' => null,
+        ]);
 
         // Check 24-hour limit
         $recentAirtime = Reward::where('phone_number', $phone)
@@ -264,11 +376,12 @@ class UssdService
             return $this->end('You already requested airtime in the last 24 hours. Please try again later.');
         }
 
-        // Send NGN 100 airtime
+        // Send airtime
         try {
-            $reward = app(AirtimeService::class)->sendToPhone($phone, 100.00, 'Ranger airtime request');
+            $amount = (float) config('services.africastalking.airtime_amount', 100);
+            $reward = app(AirtimeService::class)->sendToPhone($phone, $amount, 'Ranger airtime request');
             $status = $reward->status === 'sent'
-                ? "NGN 100 airtime has been sent to {$phone}. Thank you for your service!"
+                ? 'NGN '.number_format($amount, 0)." airtime has been sent to {$phone}. Thank you for your service!"
                 : 'Airtime request failed. Please contact admin.';
         } catch (\Throwable $e) {
             logger()->error('Ranger airtime request failed: '.$e->getMessage());
@@ -352,7 +465,11 @@ class UssdService
      */
     protected function resetSession(UssdSession $session): string
     {
-        $session->update(['current_step' => 0, 'data' => null]);
+        $session->update([
+            'current_step' => 0,
+            'data' => null,
+            'created_at' => now(),
+        ]);
 
         return $this->showWelcome($session);
     }
@@ -382,17 +499,40 @@ class UssdService
 
     /**
      * Format a CON (continue) USSD response.
+     * AT limits responses to ~182 chars total — truncate if needed.
      */
     protected function con(string $message): string
     {
-        return 'CON '.$message;
+        return 'CON '.$this->truncateResponse($message);
     }
 
     /**
      * Format an END (terminal) USSD response.
+     * AT limits responses to ~182 chars total — truncate if needed.
      */
     protected function end(string $message): string
     {
-        return 'END '.$message;
+        return 'END '.$this->truncateResponse($message);
+    }
+
+    /**
+     * Truncate a USSD message to fit within AT's ~182 character limit
+     * (182 minus 3-4 for the CON/END prefix).
+     */
+    protected function truncateResponse(string $message): string
+    {
+        $limit = 178;
+
+        if (mb_strlen($message) <= $limit) {
+            return $message;
+        }
+
+        Log::channel('ussd')->warning('USSD response truncated', [
+            'length' => mb_strlen($message),
+            'limit' => $limit,
+            'original' => $message,
+        ]);
+
+        return mb_substr($message, 0, $limit - 3).'...';
     }
 }

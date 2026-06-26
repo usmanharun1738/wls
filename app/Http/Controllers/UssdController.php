@@ -7,6 +7,7 @@ use App\Services\UssdService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 
 class UssdController extends Controller
 {
@@ -17,7 +18,16 @@ class UssdController extends Controller
      */
     public function callback(Request $request): Response
     {
-        $response = $this->ussdService->handleRequest($request->all());
+        try {
+            $response = $this->ussdService->handleRequest($request->all());
+        } catch (\Throwable $e) {
+            Log::channel('ussd')->error('USSD unhandled exception', [
+                'message' => $e->getMessage(),
+                'input' => $request->all(),
+            ]);
+
+            $response = 'END An error occurred. Please try again.';
+        }
 
         return response($response, 200)
             ->header('Content-Type', 'text/plain');
