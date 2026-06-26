@@ -37,11 +37,6 @@ class AirtimeService
             return false;
         }
 
-        // Demo/sandbox mode — simulate successful airtime delivery
-        if (config('services.africastalking.airtime_simulate')) {
-            return $this->simulateReward($report);
-        }
-
         // Send via AT API using JSON (the SDK uses form-encoded which sandbox rejects)
         $response = Http::withHeaders([
             'apiKey' => $this->apiKey,
@@ -77,41 +72,12 @@ class AirtimeService
         return $reward->status === 'sent';
     }
 
-    protected function simulateReward(Report $report): bool
-    {
-        $reward = Reward::create([
-            'report_id' => $report->id,
-            'phone_number' => $report->phone_number,
-            'amount' => $report->reward_amount,
-            'currency_code' => $this->currency,
-            'status' => 'sent',
-            'transaction_id' => 'WLS-SIM-'.strtoupper(uniqid()),
-            'error_message' => null,
-        ]);
-
-        $report->update(['reward_sent' => true]);
-
-        return true;
-    }
-
     /**
      * Send airtime directly to a phone number (used for ranger self-request).
      */
     public function sendToPhone(string $phoneNumber, float $amount, ?string $note = null): Reward
     {
         $rangerPhone = $phoneNumber;
-
-        if (config('services.africastalking.airtime_simulate')) {
-            return Reward::create([
-                'report_id' => null,
-                'phone_number' => $rangerPhone,
-                'amount' => $amount,
-                'currency_code' => $this->currency,
-                'status' => 'sent',
-                'transaction_id' => 'WLS-SIM-'.strtoupper(uniqid()),
-                'error_message' => $note,
-            ]);
-        }
 
         $response = Http::withHeaders([
             'apiKey' => $this->apiKey,
