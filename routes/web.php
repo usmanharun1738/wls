@@ -2,6 +2,13 @@
 
 use Illuminate\Support\Facades\Route;
 
+// Serve the app logo as SVG favicon
+Route::get('/favicon.svg', function () {
+    return response()
+        ->view('components.app-logo-icon', [], 200)
+        ->header('Content-Type', 'image/svg+xml');
+})->name('favicon');
+
 Route::view('/', 'welcome')->name('home');
 
 // --- Admin routes ---
