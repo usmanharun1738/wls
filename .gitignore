@@ -69,3 +69,6 @@ ngrok.yml
 # --- WLS Specific ---
 /junie/
 /.agents/
+
+MARKETPLACE_SUBMISSION.md
+PITCH_DECK.md

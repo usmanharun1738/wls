@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: wls:latest
+    container_name: wls-app
+    ports:
+      - "80:80"
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=https://wls.uthmanharun.com
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=wls
+      - DB_USERNAME=wls
+      - DB_PASSWORD=wls_secret
+      - AFRICASTALKING_USERNAME=${AFRICASTALKING_USERNAME:-sandbox}
+      - AFRICASTALKING_KEY=${AFRICASTALKING_KEY}
+      - AFRICASTALKING_FROM=${AFRICASTALKING_FROM:-44275}
+      - ATCALLBACKURL=${ATCALLBACKURL:-https://wls.uthmanharun.com}
+      - USSD_SERVICE_CODE=${USSD_SERVICE_CODE:-*384*44275#}
+      - AFRICASTALKING_AIRTIME_AMOUNT=${AFRICASTALKING_AIRTIME_AMOUNT:-100}
+      - APP_KEY=${APP_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - wls_storage:/var/www/storage
+
+  db:
+    image: mysql:8.0
+    container_name: wls-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_DATABASE=wls
+      - MYSQL_USER=wls
+      - MYSQL_PASSWORD=wls_secret
+      - MYSQL_ROOT_PASSWORD=root_secret
+    ports:
+      - "3306:3306"
+    volumes:
+      - wls_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  wls_storage:
+  wls_db_data:

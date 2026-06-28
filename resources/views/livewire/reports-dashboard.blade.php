@@ -132,7 +132,7 @@
                                     }"
                                     size="sm"
                                 >
-                                    {{ str_replace('_', ' ', $report->incident_type) }}
+                                    {{ str_replace('_', ' ', $report->incident_type->value ?? '') }}
                                 </flux:badge>
                             </td>
                             <td class="px-4 py-3 max-w-[200px] truncate text-zinc-600 dark:text-zinc-400" title="{{ $report->location }}">
@@ -255,7 +255,7 @@
                         }"
                         size="sm"
                     >
-                        {{ str_replace('_', ' ', $report->incident_type) }}
+                        {{ str_replace('_', ' ', $report->incident_type->value ?? '') }}
                     </flux:badge>
                     <flux:text class="text-xs text-zinc-600 dark:text-zinc-400">{{ $report->location }}</flux:text>
                 </div>
